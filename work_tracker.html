@@ -1,0 +1,1238 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Shift Tracker</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --cream: #faf7f2;
+        --blush: #f5ddd6;
+        --sage: #d4e5d0;
+        --sky: #d0e4f0;
+        --lavender: #e2d9f3;
+        --peach: #fbcfb0;
+        --post-bg: #d0e4f0;
+        --post-fg: #2a5f7a;
+        --cash-bg: #d4e5d0;
+        --cash-fg: #2e6640;
+        --tfn-bg: #f5ddd6;
+        --tfn-fg: #8b3a2a;
+        --text: #2d2926;
+        --muted: #8e8680;
+        --border: #e8e2da;
+        --white: #ffffff;
+        --shadow: 0 2px 16px rgba(45, 41, 38, 0.08);
+        --radius: 18px;
+        --radius-sm: 10px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+        font-family: "DM Sans", sans-serif;
+        background: var(--cream);
+        color: var(--text);
+      }
+      /* ── Loader ───────────────────────────── */
+      .loader-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(250, 247, 242, 0.9); /* your cream */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 999;
+        transition: opacity 0.3s ease;
+      }
+
+      .loader {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        border: 4px solid var(--border);
+        border-top: 4px solid var(--post-fg); /* nice pastel accent */
+        animation: spin 0.8s linear infinite;
+        box-shadow: var(--shadow);
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .loader.hide {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* ── Layout shell ───────────────────────────────────────── */
+      #app {
+        display: flex;
+        flex-direction: column;
+        height: 100dvh;
+        max-width: 430px;
+        margin: 0 auto;
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* ── Top bar ────────────────────────────────────────────── */
+      .topbar {
+        padding: 14px 20px 0;
+        flex-shrink: 0;
+      }
+      .topbar h1 {
+        font-family: "DM Serif Display", serif;
+        font-size: 22px;
+        letter-spacing: -0.3px;
+        color: var(--text);
+      }
+      .topbar h1 span {
+        font-style: italic;
+        color: var(--post-fg);
+      }
+      .topbar-sub {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 1px;
+        font-weight: 400;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+      }
+
+      /* ── Tab nav ────────────────────────────────────────────── */
+      .tabs {
+        display: flex;
+        margin: 14px 20px 0;
+        background: var(--border);
+        border-radius: 50px;
+        padding: 3px;
+        flex-shrink: 0;
+      }
+      .tab-btn {
+        flex: 1;
+        border: none;
+        background: transparent;
+        border-radius: 50px;
+        padding: 8px 0;
+        font-family: "DM Sans", sans-serif;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--muted);
+        cursor: pointer;
+        transition: all 0.22s ease;
+      }
+      .tab-btn.active {
+        background: var(--white);
+        color: var(--text);
+        box-shadow: var(--shadow);
+      }
+
+      /* ── Page container ─────────────────────────────────────── */
+      .pages {
+        flex: 1;
+        overflow: hidden;
+        position: relative;
+        margin-top: 12px;
+      }
+      .page {
+        position: absolute;
+        inset: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 0 20px 20px;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateX(30px);
+        transition:
+          opacity 0.25s ease,
+          transform 0.25s ease;
+      }
+      .page.active {
+        opacity: 1;
+        pointer-events: all;
+        transform: translateX(0);
+      }
+      .page.slide-left {
+        transform: translateX(-30px);
+      }
+
+      /* ── ADD SHIFT CARD ─────────────────────────────────────── */
+      .card {
+        background: var(--white);
+        border-radius: var(--radius);
+        padding: 18px;
+        box-shadow: var(--shadow);
+        margin-bottom: 14px;
+      }
+      .card-title {
+        font-family: "DM Serif Display", serif;
+        font-size: 16px;
+        margin-bottom: 14px;
+        color: var(--text);
+      }
+
+      /* ── Form fields ────────────────────────────────────────── */
+      .field {
+        margin-bottom: 12px;
+      }
+      .field label {
+        display: block;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--muted);
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+      }
+      .field input,
+      .field select {
+        width: 100%;
+        padding: 11px 14px;
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius-sm);
+        font-family: "DM Sans", sans-serif;
+        font-size: 14px;
+        color: var(--text);
+        background: var(--cream);
+        outline: none;
+        appearance: none;
+        transition: border-color 0.15s;
+      }
+      .field input:focus,
+      .field select:focus {
+        border-color: var(--post-fg);
+        background: var(--white);
+      }
+      .field-row {
+        display: flex;
+        gap: 10px;
+      }
+      .field-row .field {
+        flex: 1;
+      }
+
+      /* ── Shift type pills ───────────────────────────────────── */
+      .shift-pills {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .shift-pill {
+        flex: 1;
+        min-width: 0;
+        border: 1.5px solid var(--border);
+        border-radius: 50px;
+        padding: 9px 6px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.18s ease;
+        background: var(--cream);
+      }
+      .shift-pill .pill-name {
+        font-size: 12px;
+        font-weight: 600;
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .shift-pill .pill-rate {
+        font-size: 11px;
+        color: var(--muted);
+        display: block;
+        margin-top: 1px;
+      }
+      .shift-pill.selected-post {
+        background: var(--post-bg);
+        border-color: var(--post-fg);
+      }
+      .shift-pill.selected-post .pill-name {
+        color: var(--post-fg);
+      }
+      .shift-pill.selected-cash {
+        background: var(--cash-bg);
+        border-color: var(--cash-fg);
+      }
+      .shift-pill.selected-cash .pill-name {
+        color: var(--cash-fg);
+      }
+      .shift-pill.selected-tfn {
+        background: var(--tfn-bg);
+        border-color: var(--tfn-fg);
+      }
+      .shift-pill.selected-tfn .pill-name {
+        color: var(--tfn-fg);
+      }
+
+      /* ── Add button ─────────────────────────────────────────── */
+      .btn-add {
+        width: 100%;
+        padding: 13px;
+        border: none;
+        border-radius: var(--radius-sm);
+        background: var(--text);
+        color: var(--white);
+        font-family: "DM Sans", sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        letter-spacing: 0.2px;
+        transition:
+          opacity 0.15s,
+          transform 0.1s;
+        margin-top: 4px;
+      }
+      .btn-add:active {
+        opacity: 0.85;
+        transform: scale(0.98);
+      }
+
+      /* ── Shift list ─────────────────────────────────────────── */
+      .section-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--muted);
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        margin-top: 4px;
+      }
+
+      .shift-item {
+        background: var(--white);
+        border-radius: var(--radius);
+        padding: 14px 16px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        box-shadow: var(--shadow);
+        animation: slideIn 0.2s ease;
+      }
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .shift-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .dot-post {
+        background: var(--post-fg);
+      }
+      .dot-cash {
+        background: var(--cash-fg);
+      }
+      .dot-tfn {
+        background: var(--tfn-fg);
+      }
+
+      .shift-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .shift-info .si-top {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+      }
+      .shift-info .si-job {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .shift-info .si-date {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .shift-info .si-time {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .shift-earn {
+        font-family: "DM Serif Display", serif;
+        font-size: 17px;
+        color: var(--text);
+        flex-shrink: 0;
+      }
+      .shift-del {
+        background: none;
+        border: none;
+        color: var(--border);
+        font-size: 18px;
+        cursor: pointer;
+        padding: 0 0 0 4px;
+        line-height: 1;
+        transition: color 0.15s;
+        flex-shrink: 0;
+      }
+      .shift-del:active {
+        color: #c0392b;
+      }
+
+      /* ── Empty state ────────────────────────────────────────── */
+      .empty-state {
+        text-align: center;
+        padding: 32px 20px;
+        color: var(--muted);
+      }
+      .empty-state .es-icon {
+        font-size: 36px;
+        margin-bottom: 8px;
+      }
+      .empty-state p {
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      /* ── Summary cards ──────────────────────────────────────── */
+      .summary-row {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .summary-card {
+        flex: 1;
+        border-radius: var(--radius);
+        padding: 14px 14px 12px;
+        box-shadow: var(--shadow);
+      }
+      .summary-card.total-card {
+        background: var(--text);
+        color: var(--white);
+      }
+      .summary-card.post-card {
+        background: var(--post-bg);
+      }
+      .summary-card.cash-card {
+        background: var(--cash-bg);
+      }
+      .summary-card.tfn-card {
+        background: var(--tfn-bg);
+      }
+      .sc-label {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        opacity: 0.7;
+        margin-bottom: 4px;
+      }
+      .sc-amount {
+        font-family: "DM Serif Display", serif;
+        font-size: 22px;
+        letter-spacing: -0.5px;
+      }
+      .total-card .sc-amount {
+        color: var(--white);
+      }
+      .post-card .sc-amount {
+        color: var(--post-fg);
+      }
+      .cash-card .sc-amount {
+        color: var(--cash-fg);
+      }
+      .tfn-card .sc-amount {
+        color: var(--tfn-fg);
+      }
+      .sc-sub {
+        font-size: 11px;
+        margin-top: 2px;
+        opacity: 0.65;
+      }
+
+      /* ── Schedule view ──────────────────────────────────────── */
+      .sched-week {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 14px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        scrollbar-width: none;
+      }
+      .sched-week::-webkit-scrollbar {
+        display: none;
+      }
+      .day-col {
+        flex-shrink: 0;
+        width: 52px;
+        text-align: center;
+      }
+      .day-label {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--muted);
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+      }
+      .day-num {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 500;
+        margin: 0 auto 6px;
+        background: var(--white);
+        color: var(--text);
+        box-shadow: var(--shadow);
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .day-num.today {
+        background: var(--text);
+        color: var(--white);
+      }
+      .day-num.has-shift {
+        box-shadow: 0 0 0 2px currentColor;
+      }
+      .day-dots {
+        display: flex;
+        justify-content: center;
+        gap: 3px;
+        flex-wrap: wrap;
+      }
+      .day-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
+
+      /* Week nav */
+      .week-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+      .week-nav-btn {
+        background: var(--white);
+        border: 1.5px solid var(--border);
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.15s;
+        box-shadow: var(--shadow);
+      }
+      .week-nav-btn:active {
+        background: var(--border);
+      }
+      .week-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      /* ── Toast ──────────────────────────────────────────────── */
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(80px);
+        background: var(--text);
+        color: var(--white);
+        padding: 10px 20px;
+        border-radius: 50px;
+        font-size: 13px;
+        font-weight: 500;
+        transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        z-index: 100;
+        white-space: nowrap;
+      }
+      .toast.show {
+        transform: translateX(-50%) translateY(0);
+      }
+
+      /* ── Filter chips ───────────────────────────────────────── */
+      .filter-row {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 10px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        padding-bottom: 2px;
+      }
+      .filter-row::-webkit-scrollbar {
+        display: none;
+      }
+      .chip {
+        flex-shrink: 0;
+        padding: 5px 12px;
+        border-radius: 50px;
+        border: 1.5px solid var(--border);
+        background: var(--cream);
+        font-family: "DM Sans", sans-serif;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--muted);
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .chip.active {
+        background: var(--text);
+        color: var(--white);
+        border-color: var(--text);
+      }
+
+      /* ── Month header in list ───────────────────────────────── */
+      .month-header {
+        font-family: "DM Serif Display", serif;
+        font-size: 14px;
+        color: var(--text);
+        margin: 16px 0 8px;
+        padding-bottom: 4px;
+        border-bottom: 1px solid var(--border);
+      }
+      .month-header:first-child {
+        margin-top: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- <div id="loader" class="loader-overlay">
+      <div class="loader"></div>
+    </div> -->
+    <div id="app">
+      <div class="topbar">
+        <h1>Shift <span>Tracker</span></h1>
+        <div class="topbar-sub">Post &amp; Mad Mex</div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('schedule')">
+          📅 Schedule
+        </button>
+        <button class="tab-btn" onclick="switchTab('pay')">💰 Pay</button>
+      </div>
+
+      <div class="pages">
+        <!-- ══ SCHEDULE PAGE ══════════════════════════════════════ -->
+        <div class="page active" id="page-schedule">
+          <!-- Add shift card -->
+          <div class="card">
+            <div class="card-title">Add Shift</div>
+
+            <div class="field">
+              <label>Date</label>
+              <input type="date" id="inp-date" />
+            </div>
+
+            <div class="field">
+              <label>Shift Type</label>
+              <div class="shift-pills">
+                <div
+                  class="shift-pill"
+                  id="pill-post"
+                  onclick="selectShift('post')"
+                >
+                  <span class="pill-name">Post</span>
+                  <span class="pill-rate">$20/hr</span>
+                </div>
+                <div
+                  class="shift-pill"
+                  id="pill-cash"
+                  onclick="selectShift('cash')"
+                >
+                  <span class="pill-name">Mad Mex Cash</span>
+                  <span class="pill-rate">$21/hr</span>
+                </div>
+                <div
+                  class="shift-pill"
+                  id="pill-tfn"
+                  onclick="selectShift('tfn')"
+                >
+                  <span class="pill-name">Mad Mex TFN</span>
+                  <span class="pill-rate">$33/hr</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field">
+                <label>Start</label>
+                <select id="inp-start"></select>
+              </div>
+              <div class="field">
+                <label>End</label>
+                <select id="inp-end"></select>
+              </div>
+            </div>
+
+            <button class="btn-add" onclick="addShift()">Add Shift</button>
+          </div>
+
+          <!-- Week calendar -->
+          <div class="section-label">This Week</div>
+          <div class="week-nav">
+            <button class="week-nav-btn" onclick="changeWeek(-1)">‹</button>
+            <span class="week-label" id="week-label"></span>
+            <button class="week-nav-btn" onclick="changeWeek(1)">›</button>
+          </div>
+          <div class="sched-week" id="sched-week"></div>
+
+          <!-- Upcoming shifts -->
+          <div class="section-label" style="margin-top: 8px">
+            Upcoming Shifts
+          </div>
+          <div id="upcoming-list"></div>
+        </div>
+
+        <!-- ══ PAY PAGE ════════════════════════════════════════════ -->
+        <div class="page" id="page-pay">
+          <!-- Summary cards -->
+          <div class="summary-row">
+            <div class="summary-card total-card">
+              <div class="sc-label">Total</div>
+              <div class="sc-amount" id="sum-total">$0</div>
+              <div class="sc-sub" id="sum-hours">0 hrs</div>
+            </div>
+            <div class="summary-card post-card">
+              <div class="sc-label">Post</div>
+              <div class="sc-amount" id="sum-post">$0</div>
+              <div class="sc-sub" id="sum-post-h">0 hrs</div>
+            </div>
+          </div>
+          <div class="summary-row">
+            <div class="summary-card cash-card">
+              <div class="sc-label">Mad Mex Cash</div>
+              <div class="sc-amount" id="sum-cash">$0</div>
+              <div class="sc-sub" id="sum-cash-h">0 hrs</div>
+            </div>
+            <div class="summary-card tfn-card">
+              <div class="sc-label">Mad Mex TFN</div>
+              <div class="sc-amount" id="sum-tfn">$0</div>
+              <div class="sc-sub" id="sum-tfn-h">0 hrs</div>
+            </div>
+          </div>
+
+          <!-- Filter chips -->
+          <div class="filter-row">
+            <button class="chip active" onclick="setFilter('all', this)">
+              All
+            </button>
+            <button class="chip" onclick="setFilter('post', this)">Post</button>
+            <button class="chip" onclick="setFilter('cash', this)">
+              Mad Mex Cash
+            </button>
+            <button class="chip" onclick="setFilter('tfn', this)">
+              Mad Mex TFN
+            </button>
+          </div>
+          <!-- NEW: Time period filter -->
+          <div class="filter-row">
+            <button
+              class="chip active"
+              onclick="setTimePeriodFilter('past', this)"
+            >
+              Worked
+            </button>
+            <button
+              class="chip"
+              onclick="setTimePeriodFilter('upcoming', this)"
+            >
+              Upcoming
+            </button>
+          </div>
+
+          <!-- Pay list -->
+          <div id="pay-list"></div>
+        </div>
+      </div>
+    </div>
+    deleteShift
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script type="module">
+      // Import the functions you need from the SDKs you need
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
+      import {
+        getFirestore,
+        collection,
+        addDoc,
+        getDocs,
+        deleteDoc,
+        doc,
+      } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+      // TODO: Add SDKs for Firebase products that you want to use
+      // https://firebase.google.com/docs/web/setup#available-libraries
+
+      // Your web app's Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyCoc1yKIXIxDknoEcGuhkbJUUFFbbv48Is",
+        authDomain: "shift-tracker-14594.firebaseapp.com",
+        projectId: "shift-tracker-14594",
+        storageBucket: "shift-tracker-14594.firebasestorage.app",
+        messagingSenderId: "542544109932",
+        appId: "1:542544109932:web:53e51382a352f15b465349",
+      };
+
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+
+      // ── State ──────────────────────────────────────────────────────────────────
+      let shifts = [];
+      let selectedShift = null;
+      let currentWeekOffset = 0;
+      let activeFilter = "all";
+      let activeTab = "schedule";
+
+      const RATES = { post: 20, cash: 21, tfn: 33 };
+      const LABELS = { post: "Post", cash: "Mad Mex Cash", tfn: "Mad Mex TFN" };
+
+      function showLoader() {
+        document.getElementById("loader").classList.remove("hide");
+      }
+
+      function hideLoader() {
+        document.getElementById("loader").classList.add("hide");
+      }
+
+      async function loadShifts() {
+        // showLoader();
+
+        const snapshot = await getDocs(collection(db, "shifts"));
+        shifts = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        renderWeek();
+        renderUpcoming();
+        renderPay();
+        // hideLoader();
+      }
+
+      // ── Init ───────────────────────────────────────────────────────────────────
+      // function init() {
+      //   const today = new Date();
+      //   document.getElementById("inp-date").value = formatDateInput(today);
+      //   buildTimeOptions();
+      //   renderWeek();
+      //   renderUpcoming();
+      //   renderPay();
+      // }
+      function init() {
+        const today = new Date();
+        document.getElementById("inp-date").value = formatDateInput(today);
+        buildTimeOptions();
+        loadShifts(); // instead of render calls
+      }
+
+      // function formatDateInput(d) {
+      //   return d.toISOString().split("T")[0];
+      // }
+      function formatDateInput(d) {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+
+      function buildTimeOptions() {
+        const starts = document.getElementById("inp-start");
+        const ends = document.getElementById("inp-end");
+        starts.innerHTML = "";
+        ends.innerHTML = "";
+        for (let h = 0; h < 24; h++) {
+          for (let m = 0; m < 60; m += 30) {
+            const label = formatTime(h, m);
+            const val = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+            starts.innerHTML += `<option value="${val}">${label}</option>`;
+            ends.innerHTML += `<option value="${val}">${label}</option>`;
+          }
+        }
+        // Sensible defaults: 9:00 → 17:00
+        starts.value = "09:00";
+        ends.value = "17:00";
+      }
+
+      function formatTime(h, m) {
+        const ampm = h < 12 ? "AM" : "PM";
+        const hh = h === 0 ? 12 : h > 12 ? h - 12 : h;
+        return `${hh}:${String(m).padStart(2, "0")} ${ampm}`;
+      }
+
+      function timeToFloat(t) {
+        const [h, m] = t.split(":").map(Number);
+        return h + m / 60;
+      }
+
+      function calcHours(start, end) {
+        let h = timeToFloat(end) - timeToFloat(start);
+        if (h <= 0) h += 24; // overnight
+        return Math.round(h * 100) / 100;
+      }
+
+      // ── Shift type selection ───────────────────────────────────────────────────
+      function selectShift(type) {
+        selectedShift = type;
+        ["post", "cash", "tfn"].forEach((t) => {
+          const el = document.getElementById(`pill-${t}`);
+          el.className = "shift-pill" + (t === type ? ` selected-${t}` : "");
+        });
+      }
+
+      async function addShift() {
+        // showLoader();
+        const date = document.getElementById("inp-date").value;
+        const start = document.getElementById("inp-start").value;
+        const end = document.getElementById("inp-end").value;
+
+        if (!date) {
+          toast("Pick a date");
+          return;
+        }
+        if (!selectedShift) {
+          toast("Choose a shift type");
+          return;
+        }
+
+        const hours = calcHours(start, end);
+        const earn = Math.round(hours * RATES[selectedShift] * 100) / 100;
+
+        await addDoc(collection(db, "shifts"), {
+          date,
+          type: selectedShift,
+          start,
+          end,
+          hours,
+          earn,
+        });
+        // hideLoader();
+        toast(`Shift added — $${earn.toFixed(2)}`);
+
+        await loadShifts(); // refresh
+      }
+
+      async function deleteShift(id) {
+        // showLoader();
+        await deleteDoc(doc(db, "shifts", id));
+        await loadShifts();
+        // hideLoader();
+      }
+
+      // ── Week calendar ──────────────────────────────────────────────────────────
+      function getWeekStart(offset) {
+        const now = new Date();
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Monday
+        const monday = new Date(now.setDate(diff + offset * 7));
+        monday.setHours(0, 0, 0, 0);
+        return monday;
+      }
+
+      function changeWeek(dir) {
+        currentWeekOffset += dir;
+        renderWeek();
+        renderUpcoming();
+      }
+
+      function renderWeek() {
+        const ws = getWeekStart(currentWeekOffset);
+        const we = new Date(ws);
+        we.setDate(we.getDate() + 6);
+        const fmt = (d) =>
+          d.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
+        document.getElementById("week-label").textContent =
+          `${fmt(ws)} – ${fmt(we)}`;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const days = ["M", "T", "W", "T", "F", "S", "S"];
+        const container = document.getElementById("sched-week");
+        container.innerHTML = "";
+
+        for (let i = 0; i < 7; i++) {
+          const d = new Date(ws);
+          d.setDate(ws.getDate() + i);
+          const ds = formatDateInput(d);
+          const dayShifts = shifts.filter((s) => s.date === ds);
+          const isToday = d.getTime() === today.getTime();
+
+          let dots = dayShifts
+            .map((s) => {
+              const cls =
+                s.type === "post"
+                  ? "dot-post"
+                  : s.type === "cash"
+                    ? "dot-cash"
+                    : "dot-tfn";
+              return `<div class="day-dot ${cls}"></div>`;
+            })
+            .join("");
+
+          const numClass = [
+            "day-num",
+            isToday ? "today" : "",
+            dayShifts.length ? "has-shift" : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
+          const color = isToday
+            ? "#FAF7F2"
+            : dayShifts.length === 1
+              ? dayShifts[0].type === "post"
+                ? "var(--post-fg)"
+                : dayShifts[0].type === "cash"
+                  ? "var(--cash-fg)"
+                  : "var(--tfn-fg)"
+              : "var(--text)";
+
+          container.innerHTML += `
+      <div class="day-col">
+        <div class="day-label">${days[i]}</div>
+        <div class="${numClass}" style="color:${isToday ? "" : color}">${d.getDate()}</div>
+        <div class="day-dots">${dots}</div>
+      </div>`;
+        }
+      }
+
+      // ── Upcoming shifts list ───────────────────────────────────────────────────
+      function renderUpcoming() {
+        const ws = getWeekStart(currentWeekOffset);
+        const we = new Date(ws);
+        we.setDate(we.getDate() + 7);
+        const wsStr = formatDateInput(ws);
+        const weStr = formatDateInput(we);
+
+        const week = shifts
+          .filter((s) => s.date >= wsStr && s.date < weStr)
+          .sort(
+            (a, b) =>
+              b.date.localeCompare(a.date) || b.start.localeCompare(a.start),
+          );
+
+        const el = document.getElementById("upcoming-list");
+        if (!week.length) {
+          el.innerHTML = `<div class="empty-state"><div class="es-icon">🗓️</div><p>No shifts this week</p></div>`;
+          return;
+        }
+        el.innerHTML = week.map((s) => shiftHTML(s)).join("");
+      }
+
+      // ── Pay list ───────────────────────────────────────────────────────────────
+      let timePeriodFilter = "past"; // NEW: default to "past"
+
+      function setFilter(f, btn) {
+        activeFilter = f;
+        document
+          .querySelectorAll(".chip")
+          .forEach((c) => c.classList.remove("active"));
+        btn.classList.add("active");
+        renderPay();
+      }
+
+      // NEW: separate filter for time period
+      function setTimePeriodFilter(period, btn) {
+        timePeriodFilter = period;
+        document
+          .querySelectorAll(".filter-row:last-child .chip")
+          .forEach((c) => c.classList.remove("active"));
+        btn.classList.add("active");
+        renderPay();
+      }
+
+      function renderPay() {
+        const now = new Date(); // Current date AND time
+
+        const calc = (type, filterPeriod) => {
+          const s = shifts.filter((s) => {
+            const shiftDateTime = new Date(s.date + "T" + s.end); // Check end time
+            const typeMatch = !type || s.type === type;
+
+            let periodMatch = true;
+            if (filterPeriod === "past") {
+              periodMatch = shiftDateTime <= now; // Shift ended before now
+            } else if (filterPeriod === "upcoming") {
+              periodMatch = shiftDateTime > now; // Shift hasn't ended yet
+            }
+
+            return typeMatch && periodMatch;
+          });
+          return {
+            earn: s.reduce((a, c) => a + c.earn, 0),
+            hrs: s.reduce((a, c) => a + c.hours, 0),
+          };
+        };
+
+        const total = calc(null, timePeriodFilter);
+        const post = calc("post", timePeriodFilter);
+        const cash = calc("cash", timePeriodFilter);
+        const tfn = calc("tfn", timePeriodFilter);
+
+        document.getElementById("sum-total").textContent =
+          `$${total.earn.toFixed(2)}`;
+        document.getElementById("sum-hours").textContent =
+          `${total.hrs.toFixed(1)} hrs`;
+        document.getElementById("sum-post").textContent =
+          `$${post.earn.toFixed(2)}`;
+        document.getElementById("sum-post-h").textContent =
+          `${post.hrs.toFixed(1)} hrs`;
+        document.getElementById("sum-cash").textContent =
+          `$${cash.earn.toFixed(2)}`;
+        document.getElementById("sum-cash-h").textContent =
+          `${cash.hrs.toFixed(1)} hrs`;
+        document.getElementById("sum-tfn").textContent =
+          `$${tfn.earn.toFixed(2)}`;
+        document.getElementById("sum-tfn-h").textContent =
+          `${tfn.hrs.toFixed(1)} hrs`;
+
+        // List grouped by month
+        const filtered = shifts
+          .filter((s) => {
+            const typeMatch = activeFilter === "all" || s.type === activeFilter;
+            const shiftDateTime = new Date(s.date + "T" + s.end);
+            let periodMatch = true;
+            if (timePeriodFilter === "past") {
+              periodMatch = shiftDateTime <= now;
+            } else if (timePeriodFilter === "upcoming") {
+              periodMatch = shiftDateTime > now;
+            }
+            return typeMatch && periodMatch;
+          })
+          .sort((a, b) => b.date.localeCompare(a.date));
+
+        const el = document.getElementById("pay-list");
+        if (!filtered.length) {
+          el.innerHTML = `<div class="empty-state"><div class="es-icon">💸</div><p>No shifts yet.<br>Add one on the Schedule tab.</p></div>`;
+          return;
+        }
+
+        let html = "";
+        let lastMonth = "";
+        filtered.forEach((s) => {
+          const month = new Date(s.date + "T00:00").toLocaleDateString(
+            "en-AU",
+            { month: "long", year: "numeric" },
+          );
+          if (month !== lastMonth) {
+            html += `<div class="month-header">${month}</div>`;
+            lastMonth = month;
+          }
+          html += shiftHTML(s);
+        });
+        el.innerHTML = html;
+      }
+
+      // Add to window so buttons can call it
+      window.setTimePeriodFilter = setTimePeriodFilter;
+
+      // ── Shift HTML ─────────────────────────────────────────────────────────────
+      function shiftHTML(s) {
+        const dotClass =
+          s.type === "post"
+            ? "dot-post"
+            : s.type === "cash"
+              ? "dot-cash"
+              : "dot-tfn";
+        const dateStr = new Date(s.date + "T00:00").toLocaleDateString(
+          "en-AU",
+          { weekday: "short", day: "numeric", month: "short" },
+        );
+        const st = formatTimeStr(s.start),
+          en = formatTimeStr(s.end);
+        return `
+    <div class="shift-item">
+      <div class="shift-dot ${dotClass}"></div>
+      <div class="shift-info">
+        <div class="si-top">
+          <span class="si-job">${LABELS[s.type]}</span>
+          <span class="si-date">${dateStr}</span>
+        </div>
+        <div class="si-time">${st} – ${en} · ${s.hours.toFixed(1)} hrs</div>
+      </div>
+      <div class="shift-earn">$${s.earn.toFixed(2)}</div>
+      <button class="shift-del" onclick="deleteShift('${s.id}')">×</button>
+    </div>`;
+      }
+
+      function formatTimeStr(t) {
+        const [h, m] = t.split(":").map(Number);
+        return formatTime(h, m);
+      }
+
+      // ── Tab switching ──────────────────────────────────────────────────────────
+      function switchTab(tab) {
+        const prev = activeTab;
+        activeTab = tab;
+        document.querySelectorAll(".tab-btn").forEach((b, i) => {
+          b.classList.toggle(
+            "active",
+            (i === 0 && tab === "schedule") || (i === 1 && tab === "pay"),
+          );
+        });
+        const pages = { schedule: "page-schedule", pay: "page-pay" };
+        const goRight = prev === "schedule" && tab === "pay";
+
+        Object.entries(pages).forEach(([key, id]) => {
+          const el = document.getElementById(id);
+          el.classList.remove("active", "slide-left");
+          if (key === tab) {
+            el.classList.add("active");
+          } else {
+            if (goRight) el.classList.add("slide-left");
+          }
+        });
+      }
+
+      // ── Toast ──────────────────────────────────────────────────────────────────
+      function toast(msg) {
+        const el = document.getElementById("toast");
+        el.textContent = msg;
+        el.classList.add("show");
+        setTimeout(() => el.classList.remove("show"), 2200);
+      }
+
+      // ── Run ────────────────────────────────────────────────────────────────────
+      init();
+
+      window.selectShift = selectShift;
+      window.addShift = addShift;
+      window.deleteShift = deleteShift;
+      window.switchTab = switchTab;
+      window.changeWeek = changeWeek;
+      window.setFilter = setFilter;
+      // window.addEventListener("load", () => {
+      //   setTimeout(hideLoader, 300);
+      // });
+    </script>
+  </body>
+</html>
