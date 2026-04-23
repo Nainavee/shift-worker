@@ -756,6 +756,12 @@
           <!-- NEW: Time period filter -->
           <div class="filter-row">
             <button
+              class="chip"
+              onclick="setTimePeriodFilter('all', this)"
+            >
+              All
+            </button>
+            <button
               class="chip active"
               onclick="setTimePeriodFilter('past', this)"
             >
@@ -1063,9 +1069,10 @@
       // NEW: separate filter for time period
       function setTimePeriodFilter(period, btn) {
         timePeriodFilter = period;
-        document
-          .querySelectorAll(".filter-row:last-child .chip")
-          .forEach((c) => c.classList.remove("active"));
+        // Get all filter-rows and select chips only in the second one (time period)
+        const filterRows = document.querySelectorAll(".filter-row");
+        const timePeriodRow = filterRows[filterRows.length - 1]; // Last filter-row
+        timePeriodRow.querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
         btn.classList.add("active");
         renderPay();
       }
