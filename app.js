@@ -584,7 +584,9 @@ function renderPay() {
 }
 
 function renderPayNetBar() {
-  const totalEarned = shifts.reduce((a, s) => a + s.earn, 0);
+  const totalEarned = shifts
+    .filter((s) => s.paid)
+    .reduce((a, s) => a + s.earn, 0);
   const totalExp = expenses.reduce((a, e) => a + e.amount, 0);
   const net = totalEarned - totalExp;
   document.getElementById("net-amount").textContent = "$" + net.toFixed(2);
@@ -692,7 +694,9 @@ function renderExpenses() {
     (e) => e.date && e.date.startsWith(thisMonth),
   );
   const totalExp = monthExp.reduce((a, e) => a + e.amount, 0);
-  const totalEarned = shifts.reduce((a, s) => a + s.earn, 0);
+  const totalEarned = shifts
+    .filter((s) => s.paid)
+    .reduce((a, s) => a + s.earn, 0);
 
   document.getElementById("exp-total").textContent = "$" + totalExp.toFixed(2);
   document.getElementById("exp-net").textContent =
