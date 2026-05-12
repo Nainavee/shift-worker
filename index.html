@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Work Tracker · Nainavee</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+
+    <!-- Loader -->
+    <div id="loader" class="loader-overlay">
+      <div class="loader-inner">
+        <div class="loader-ring"></div>
+        <div class="loader-text">Loading…</div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Confirm modal -->
+    <div id="modal-overlay" class="modal-overlay" onclick="closeModal()">
+      <div class="modal-box" onclick="event.stopPropagation()">
+        <div class="modal-title" id="modal-title">Delete shift?</div>
+        <div class="modal-body" id="modal-body">This cannot be undone.</div>
+        <div class="modal-actions">
+          <button class="modal-btn cancel" onclick="closeModal()">Cancel</button>
+          <button class="modal-btn confirm" id="modal-confirm-btn">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="app">
+
+      <!-- Top bar -->
+      <div class="topbar">
+        <div class="topbar-left">
+          <h1>Work <span>Tracker</span></h1>
+          <div class="topbar-sub">Nainavee · Melbourne</div>
+        </div>
+        <div class="topbar-right">
+          <div class="sync-dot" id="sync-dot" title="Sync status"></div>
+        </div>
+      </div>
+
+      <!-- Tab nav -->
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="schedule" onclick="switchTab('schedule')">📅 Shifts</button>
+        <button class="tab-btn" data-tab="pay" onclick="switchTab('pay')">💰 Pay</button>
+        <button class="tab-btn" data-tab="expenses" onclick="switchTab('expenses')">🧾 Expenses</button>
+      </div>
+
+      <!-- Pages -->
+      <div class="pages">
+
+        <!-- ══ SCHEDULE PAGE ══════════════════════════════════════ -->
+        <div class="page active" id="page-schedule">
+
+          <!-- Add shift card -->
+          <div class="card">
+            <div class="card-title">Add Shift</div>
+
+            <!-- Job type pills -->
+            <div class="field">
+              <label>Job</label>
+              <div class="shift-pills" id="job-pills">
+                <div class="shift-pill" data-job="cash" onclick="selectJob('cash')">
+                  <span class="pill-name">Mad Mex Cash</span>
+                  <span class="pill-rate">$21/hr</span>
+                </div>
+                <div class="shift-pill" data-job="tfn" onclick="selectJob('tfn')">
+                  <span class="pill-name">Mad Mex TFN</span>
+                  <span class="pill-rate">$33/hr</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Date -->
+            <div class="field">
+              <label>Date</label>
+              <input type="date" id="shift-date" />
+            </div>
+
+            <!-- Time dropdowns -->
+            <div class="field-row">
+              <div class="field">
+                <label>Start</label>
+                <select id="shift-start"></select>
+              </div>
+              <div class="field">
+                <label>End</label>
+                <select id="shift-end"></select>
+              </div>
+            </div>
+
+            <!-- Preview -->
+            <div class="shift-preview" id="shift-preview" style="display:none">
+              <div class="preview-row">
+                <span class="preview-label">Hours</span>
+                <span class="preview-val" id="preview-hours">—</span>
+              </div>
+              <div class="preview-row">
+                <span class="preview-label">Earnings</span>
+                <span class="preview-val" id="preview-earn">—</span>
+              </div>
+            </div>
+
+            <button class="btn-add" onclick="addShift()">Add Shift</button>
+          </div>
+
+          <!-- Week nav -->
+          <div class="week-nav">
+            <button class="week-nav-btn" onclick="changeWeek(-1)">‹</button>
+            <span class="week-label" id="week-label">This week</span>
+            <button class="week-nav-btn" onclick="changeWeek(1)">›</button>
+          </div>
+
+          <!-- Week calendar strip -->
+          <div class="sched-week" id="sched-week"></div>
+
+          <!-- Shifts this week -->
+          <div class="section-label">This week's shifts</div>
+          <div id="upcoming-list"></div>
+
+        </div>
+
+        <!-- ══ PAY PAGE ══════════════════════════════════════════ -->
+        <div class="page" id="page-pay">
+
+          <!-- Pay period filter -->
+          <div class="filter-row">
+            <button class="chip active" id="chip-upcoming" onclick="setPayPeriod('upcoming', this)">Upcoming</button>
+            <button class="chip" id="chip-paid" onclick="setPayPeriod('paid', this)">Paid</button>
+            <button class="chip" id="chip-all-pay" onclick="setPayPeriod('all', this)">All</button>
+          </div>
+
+          <!-- Job filter -->
+          <div class="filter-row">
+            <button class="chip active" onclick="setJobFilter('all', this)">All Jobs</button>
+            <button class="chip" onclick="setJobFilter('cash', this)">Cash</button>
+            <button class="chip" onclick="setJobFilter('tfn', this)">TFN</button>
+            <button class="chip" onclick="setJobFilter('post', this)">Post</button>
+          </div>
+
+          <!-- Summary cards -->
+          <div class="summary-row">
+            <div class="summary-card total-card">
+              <div class="sc-label">Total Earned</div>
+              <div class="sc-amount" id="sum-total">$0.00</div>
+              <div class="sc-sub" id="sum-hours">0.0 hrs</div>
+            </div>
+          </div>
+          <div class="summary-row">
+            <div class="summary-card post-card">
+              <div class="sc-label">Post</div>
+              <div class="sc-amount" id="sum-post">$0.00</div>
+              <div class="sc-sub" id="sum-post-h">0.0 hrs</div>
+            </div>
+            <div class="summary-card cash-card">
+              <div class="sc-label">Cash</div>
+              <div class="sc-amount" id="sum-cash">$0.00</div>
+              <div class="sc-sub" id="sum-cash-h">0.0 hrs</div>
+            </div>
+            <div class="summary-card tfn-card">
+              <div class="sc-label">TFN</div>
+              <div class="sc-amount" id="sum-tfn">$0.00</div>
+              <div class="sc-sub" id="sum-tfn-h">0.0 hrs</div>
+            </div>
+          </div>
+
+          <!-- Net after expenses -->
+          <div class="net-bar" id="net-bar">
+            <span class="net-label">Net after expenses</span>
+            <span class="net-amount" id="net-amount">$0.00</span>
+          </div>
+
+          <!-- Shifts list -->
+          <div class="section-label">Shifts</div>
+          <div id="pay-list"></div>
+
+        </div>
+
+        <!-- ══ EXPENSES PAGE ══════════════════════════════════════ -->
+        <div class="page" id="page-expenses">
+
+          <!-- Add expense card -->
+          <div class="card">
+            <div class="card-title">Add Expense</div>
+
+            <div class="field">
+              <label>Description</label>
+              <input type="text" id="exp-desc" placeholder="e.g. Transport, Food…" />
+            </div>
+
+            <div class="field-row">
+              <div class="field">
+                <label>Amount ($)</label>
+                <input type="number" id="exp-amount" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
+              </div>
+              <div class="field">
+                <label>Date</label>
+                <input type="date" id="exp-date" />
+              </div>
+            </div>
+
+            <!-- Category pills -->
+            <div class="field">
+              <label>Category</label>
+              <div class="cat-pills" id="cat-pills">
+                <div class="cat-pill selected" data-cat="transport" onclick="selectCat('transport')">🚌 Transport</div>
+                <div class="cat-pill" data-cat="food" onclick="selectCat('food')">🍔 Food</div>
+                <div class="cat-pill" data-cat="clothing" onclick="selectCat('clothing')">👕 Clothing</div>
+                <div class="cat-pill" data-cat="other" onclick="selectCat('other')">📦 Other</div>
+              </div>
+            </div>
+
+            <button class="btn-add" onclick="addExpense()">Add Expense</button>
+          </div>
+
+          <!-- Expense summary -->
+          <div class="summary-row">
+            <div class="summary-card exp-total-card">
+              <div class="sc-label">Total Expenses</div>
+              <div class="sc-amount" id="exp-total">$0.00</div>
+              <div class="sc-sub">This month</div>
+            </div>
+            <div class="summary-card exp-net-card">
+              <div class="sc-label">Net Income</div>
+              <div class="sc-amount" id="exp-net">$0.00</div>
+              <div class="sc-sub">Earned minus expenses</div>
+            </div>
+          </div>
+
+          <!-- Filter -->
+          <div class="filter-row">
+            <button class="chip active" onclick="setExpFilter('all', this)">All</button>
+            <button class="chip" onclick="setExpFilter('transport', this)">🚌 Transport</button>
+            <button class="chip" onclick="setExpFilter('food', this)">🍔 Food</button>
+            <button class="chip" onclick="setExpFilter('clothing', this)">👕 Clothing</button>
+            <button class="chip" onclick="setExpFilter('other', this)">📦 Other</button>
+          </div>
+
+          <div class="section-label">All Expenses</div>
+          <div id="exp-list"></div>
+
+        </div>
+      </div><!-- /pages -->
+    </div><!-- /app -->
+
+    <!-- Firebase SDKs -->
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

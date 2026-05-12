@@ -835,10 +835,16 @@
         // showLoader();
 
         const snapshot = await getDocs(collection(db, "shifts"));
-        shifts = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+        shifts = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          // earn is always calculated at runtime from stored hours × current rate
+          const earn = Math.round((data.hours || 0) * (RATES[data.type] || 0) * 100) / 100;
+          return {
+            id: doc.id,
+            ...data,
+            earn, // overwrite any stored earn with live calculation
+          };
+        });
 
         renderWeek();
         renderUpcoming();
@@ -877,17 +883,31 @@
         const ends = document.getElementById("inp-end");
         starts.innerHTML = "";
         ends.innerHTML = "";
-        for (let h = 0; h < 24; h++) {
+
+        // 9:00 AM–2:30 PM in 30-min steps, then 3:00 PM–9:00 PM in 15-min steps
+        const slots = [];
+        for (let h = 9; h < 15; h++) {
           for (let m = 0; m < 60; m += 30) {
-            const label = formatTime(h, m);
-            const val = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-            starts.innerHTML += `<option value="${val}">${label}</option>`;
-            ends.innerHTML += `<option value="${val}">${label}</option>`;
+            slots.push({ h, m });
           }
         }
-        // Sensible defaults: 9:00 → 17:00
-        starts.value = "09:00";
-        ends.value = "17:00";
+        for (let h = 15; h <= 21; h++) {
+          for (let m = 0; m < 60; m += 15) {
+            if (h === 21 && m > 0) break; // stop at 9:00 PM exactly
+            slots.push({ h, m });
+          }
+        }
+
+        slots.forEach(({ h, m }) => {
+          const label = formatTime(h, m);
+          const val = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+          starts.innerHTML += `<option value="${val}">${label}</option>`;
+          ends.innerHTML += `<option value="${val}">${label}</option>`;
+        });
+
+        // Sensible defaults: 3:00 PM → 9:00 PM
+        starts.value = "15:00";
+        ends.value = "21:00";
       }
 
       function formatTime(h, m) {
@@ -940,7 +960,7 @@
           start,
           end,
           hours,
-          earn,
+          // earn is NOT stored — it is calculated at runtime from hours × rate
         });
         // hideLoader();
         toast(`Shift added — $${earn.toFixed(2)}`);
